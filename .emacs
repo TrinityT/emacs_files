@@ -99,9 +99,6 @@
 ;;; ※ http://xahlee.org/emacs/emacs_on_ubuntu_linux.html
 (require 'tramp)
 
-;;; 指定行ジャンプ
-(global-set-key "\C-x:" 'goto-line)
-
 ;;; タイトルのファイル名を「 ディレクトリ名/ファイル名 」という表示形式にする
 (setq frame-title-format (concat "%b - emacs@" (system-name)))
 (require 'uniquify)
