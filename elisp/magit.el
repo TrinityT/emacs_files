@@ -46,7 +46,7 @@
 ;;   - Peter J Weisberg
 ;;   - Yann Hodique
 ;;   - Rémi Vanicat
-;; Version: @GIT_DEV_VERSION@
+;; Version: 1.1.1
 ;; Keywords: tools
 
 ;;
@@ -637,7 +637,7 @@ Do not customize this (used in the `magit-key-mode' implementation).")
 (defvar magit-bug-report-url
   "http://github.com/magit/magit/issues")
 
-(defconst magit-version "@GIT_DEV_VERSION@"
+(defconst magit-version "1.1.1"
   "The version of Magit that you're using.")
 
 (defun magit-bug-report (str)
@@ -1735,7 +1735,7 @@ TITLE is the displayed title of the section."
 (defvar magit-highlighted-section nil)
 
 (defun magit-highlight-section ()
-  "Highlight current section if it have a type."
+  "Highlight current section if it has a type."
   (let ((section (magit-current-section)))
     (when (not (eq section magit-highlighted-section))
       (setq magit-highlighted-section section)
@@ -1863,7 +1863,7 @@ It will also define the magit-SYM-command-hook variable.
 The defined function will call the function in the hook in
 order until one return non nil. If they all return nil then body will be called.
 
-It used to define hookable magit command: command defined by this
+It is used to define hookable magit command: command defined by this
 function can be enriched by magit extension like magit-topgit and magit-svn"
   (declare (indent defun)
            (debug (&define name lambda-list
@@ -3343,8 +3343,7 @@ PREPEND-REMOTE-NAME is non-nil."
       (unless (file-directory-p dir)
         (and (y-or-n-p (format "Directory %s does not exists.  Create it? " dir))
              (make-directory dir)))
-      (let ((default-directory dir))
-        (magit-run* (list magit-git-executable "init"))))))
+      (magit-run* (list magit-git-executable "init" dir)))))
 
 (define-derived-mode magit-status-mode magit-mode "Magit"
   "Mode for looking at git status.
@@ -3627,13 +3626,10 @@ If the branch is the current one, offers to switch to `master' first.
 
 (defun magit-move-branch (old new)
   "Renames or moves a branch.
-If the branch is the current one, offers to switch to `master' first.
 \('git branch -m OLD NEW')."
   (interactive (list (magit-read-rev "Old name" (magit-default-rev))
-                     (magit-read-rev "New name" (magit-default-rev))))
+                     (read-string "New name: ")))
   (magit-run-git "branch" "-m" (magit-rev-to-git old) new))
-
-;;; Merging
 
 (defun magit-guess-branch ()
   (magit-section-case (item info)
@@ -3641,6 +3637,8 @@ If the branch is the current one, offers to switch to `master' first.
      (magit-section-info (magit-section-parent item)))
     ((commit) (magit-name-rev (substring info 0 8)))
     ((wazzup) info)))
+
+;;; Merging
 
 (defun magit-merge (revision)
   "Merge REVISION into the current 'HEAD'; leave changes uncommitted.
@@ -3985,7 +3983,7 @@ typing and automatically refreshes the status buffer."
       (let ((set-upstream-on-push (and (not ref-branch)
                                        (or (eq magit-set-upstream-on-push 'dontask)
                                            (and (eq magit-set-upstream-on-push t)
-                                                (yes-or-no-p "Set upstream while pushing?"))))))
+                                                (yes-or-no-p "Set upstream while pushing? "))))))
         (if (and (not branch-remote)
                  (not current-prefix-arg))
             (magit-set push-remote "branch" branch "remote"))
@@ -4165,9 +4163,20 @@ environment (potentially empty)."
          (tag-name (cdr (assq 'tag-name fields)))
          (author (cdr (assq 'author fields)))
          (tag-options (cdr (assq 'tag-options fields))))
-    (if (or (not (or allow-empty commit-all amend tag-name (magit-anything-staged-p)))
-            (not (or allow-empty (not commit-all) amend (not (magit-everything-clean-p)))))
-        (error "Refusing to create empty commit. Maybe you want to amend or allow-empty?"))
+
+    (unless (or (magit-anything-staged-p)
+                allow-empty
+                amend
+                tag-name
+                (file-exists-p ".git/MERGE_HEAD")
+                (and commit-all
+                     (not (magit-everything-clean-p))))
+      (error "Refusing to create empty commit. Maybe you want to amend (%s) or allow-empty (%s)?"
+             (key-description (car (where-is-internal
+                                    'magit-log-edit-toggle-amending)))
+             (key-description (car (where-is-internal
+                                    'magit-log-edit-toggle-allow-empty)))))
+
     (magit-log-edit-push-to-comment-ring (buffer-string))
     (magit-log-edit-setup-author-env author)
     (magit-log-edit-set-fields nil)
@@ -4252,11 +4261,13 @@ This means that the eventual commit does 'git commit --allow-empty'."
     (magit-log-edit-mode)
     (message "Type C-c C-c to %s (C-c C-k to cancel)." operation)))
 
-(defun magit-log-edit (amend-p)
-  "Brings up a buffer to allow editing of commit messages. Given
-a prefix arg will set the amend flag for the commit buffer.
+(defun magit-log-edit (&optional arg)
+  "Brings up a buffer to allow editing of commit messages.
 
-If there is a rebase in progress offer the user the option to
+Giving a simple prefix arg will amend a previous commit, while
+a double prefix arg will allow creating an empty one.
+
+If there is a rebase in progress, offer the user the option to
 continue it.
 
 \\{magit-log-edit-mode-map}"
@@ -4265,29 +4276,32 @@ continue it.
   ;; suggest to continue the rebase. Git will rebuke you and exit with
   ;; error code, so suggest it only if theres absolutely nothing else
   ;; to do and rebase is ongoing.
-  (if (magit-everything-clean-p)
-      (when (and (magit-rebase-info)
-                 (y-or-n-p "Rebase in progress.  Continue it? "))
-        (magit-run-git-async "rebase" "--continue"))
+  (if (and (magit-everything-clean-p)
+           (magit-rebase-info)
+           (y-or-n-p "Rebase in progress.  Continue it? "))
+      (magit-run-git-async "rebase" "--continue")
+
     ;; If there's nothing staged, set commit flag to `nil', thus
     ;; avoiding unnescessary popping up of the log edit buffer in case
     ;; when user chose to forgo commiting all unstaged changes
-    (let ((perform-commit-p (magit-anything-staged-p)))
+    (let ((amend-p (= (prefix-numeric-value arg) 4))
+          (empty-p (= (prefix-numeric-value arg) 16)))
       (when (and magit-commit-all-when-nothing-staged
-                 (not perform-commit-p))
+                 (not (magit-everything-clean-p))
+                 (not (magit-anything-staged-p)))
         (cond ((eq magit-commit-all-when-nothing-staged 'ask-stage)
                (when (y-or-n-p "Nothing staged.  Stage everything now? ")
-                 (setq perform-commit-p t)
                  (magit-stage-all)))
               ((not (magit-log-edit-get-field 'commit-all))
                (when (or (eq magit-commit-all-when-nothing-staged t)
                          (y-or-n-p
                           "Nothing staged.  Commit all unstaged changes? "))
-                 (magit-log-edit-set-field 'commit-all "yes")
-                 (setq perform-commit-p t)))))
-      (when perform-commit-p
-        (when amend-p (magit-log-edit-toggle-amending))
-        (magit-pop-to-log-edit "commit")))))
+                 (magit-log-edit-set-field 'commit-all "yes")))))
+      (when amend-p
+        (magit-log-edit-toggle-amending))
+      (when empty-p
+        (magit-log-edit-toggle-allow-empty))
+      (magit-pop-to-log-edit "commit"))))
 
 (defun magit-add-log ()
   (interactive)
