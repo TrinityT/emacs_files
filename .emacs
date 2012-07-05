@@ -2,11 +2,15 @@
 ;;; $ rm -rf ~/.emacs
 ;;; $ rm -rf ~/.emacs.d/elisp
 ;;; $ ln -fns ~/Dropbox/development/emacs_files/.emacs ~/
-;;; $ ln -fns ~/Dropbox/development/emacs_files/elisp ~/.emacs.d/
+;;; $ ln -fns ~/Dropbox/development/emacs_files/elisp ~/.emacs.d
 ;;; $ sudo apt-get install elscreen emacs-goodies-el xsel php-elisp lv
 
 ;;; デフォルトload-path
 (add-to-list 'load-path "~/.emacs.d/elisp/")
+
+;;; 初期ディレクトリ
+;(cd "/home/takakura/")
+(cd "/home/takakura/development/bdff/server")
 
 ;; memory-size
 (setq max-lisp-eval-depth 3000)
@@ -74,7 +78,8 @@
 ;; 起動時のサイズ,表示位置
 (setq initial-frame-alist
       (append (list
-	       '(width . 200)
+         '(font . "Ricty-10")
+         '(width . 200)
 	       '(height . 60)
 	       '(top . 0)
 	       '(left . 0)
