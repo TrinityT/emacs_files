@@ -75,6 +75,9 @@
 (global-set-key "\C-h" 'delete-backward-char) ;; backspace
 (setq-default transient-mark-mode t)
 
+;; 行末の(タブ・半角スペース)を削除
+(add-hook 'before-save-hook 'delete-trailing-whitespace)
+
 ;; 起動時のサイズ,表示位置
 (setq initial-frame-alist
       (append (list
@@ -139,16 +142,16 @@
 ;;; タブ設定
 (setq-default tab-width 2 indent-tabs-mode nil)
 
-;;; クリップボード共有設定(端末モード用。xselを使用している。)
+;;; クリップボード共有設定(xselを使用している。)
 (setq interprogram-paste-function
-      (lambda ()
-         (shell-command-to-string "xsel -b -o")))
+     (lambda ()
+        (shell-command-to-string "xsel -b -o")))
 (setq interprogram-cut-function
-      (lambda (text &optional rest)
-         (let* ((process-connection-type nil)
-                (proc (start-process "xsel" "*Messages*" "xsel" "-b" "-i")))
-           (process-send-string proc text)
-           (process-send-eof proc))))
+     (lambda (text &optional rest)
+        (let* ((process-connection-type nil)
+               (proc (start-process "xsel" "*Messages*" "xsel" "-b" "-i")))
+          (process-send-string proc text)
+          (process-send-eof proc))))
 
 ;;; auto-complete
 (require 'auto-complete)
@@ -161,6 +164,11 @@
 ;;; magit設定
 (require 'magit)
 (fset 'mgs (symbol-function 'magit-status))
+;;; git blame
+(add-to-list 'load-path "~/.emacs.d/elisp/mo-git-blame")
+(autoload 'mo-git-blame-file "mo-git-blame" nil t)
+(autoload 'mo-git-blame-current "mo-git-blame" nil t)
+
 
 ;;; メニューを日本語化
 (require 'menu-tree)
@@ -516,6 +524,9 @@
   (message "My JS2 hook"))
 
 (add-hook 'js2-mode-hook 'my-js2-mode-hook)
+
+;;# anything.el #######################################################################
+(setq anything-mode-line-string nil)
 
 ;; package.el
 (require 'package)
