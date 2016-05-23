@@ -41,11 +41,11 @@
 ;;  * Internal variables
 ;; [EVAL] (autodoc-document-lisp-buffer :type 'internal-variable :prefix "anything-mp" :var-value t)
 ;; `anything-mp-default-match-functions'
-;; Default Value:	(anything-mp-exact-match anything-mp-3-match) 
+;; Default Value:	(anything-mp-exact-match anything-mp-3-match)
 ;; `anything-mp-default-search-functions'
-;; Default Value:	(anything-mp-exact-search anything-mp-3-search) 
+;; Default Value:	(anything-mp-exact-search anything-mp-3-search)
 ;; `anything-mp-default-search-backward-functions'
-;; Default Value:	(anything-mp-exact-search-backward anything-mp-3-search-backward) 
+;; Default Value:	(anything-mp-exact-search-backward anything-mp-3-search-backward)
 ;; `anything-mp-space-regexp'
 ;; Default Value: "[\\ ] "
 ;; `anything-mp-exact-pattern-str'
@@ -67,7 +67,7 @@
 ;; `anything-mp-3-pattern-str'
 ;; Default Value: "autod"
 ;; `anything-mp-3-pattern-list'
-;; Default Value:	((identity . "autod")) 
+;; Default Value:	((identity . "autod"))
 ;; `anything-mp-initial-highlight-delay'
 ;; Default Value: nil
 ;;
@@ -167,7 +167,7 @@
 (require 'anything)
 (require 'cl)
 
- 
+
 ;;;; Match-plugin
 
 ;; Internal
@@ -248,7 +248,7 @@ The smaller  this value is, the slower highlight is."
   :group 'anything-match-plugin)
 
 
- 
+
 ;;; Build regexps
 ;;
 ;;
@@ -272,7 +272,7 @@ but \"foo\ bar\"=> (\"foobar\")."
   "Replace spaces in PATTERN with \"\.*\"."
   (mapconcat 'identity (anything-mp-make-regexps pattern) ".*"))
 
- 
+
 ;;; Exact match.
 ;;
 ;;
@@ -298,7 +298,7 @@ but \"foo\ bar\"=> (\"foobar\")."
   (and (search-backward (anything-mp-exact-get-pattern pattern) nil t)
        (forward-line 1)))
 
- 
+
 ;;; Prefix match
 ;;
 ;;
@@ -325,7 +325,7 @@ but \"foo\ bar\"=> (\"foobar\")."
   (and (search-backward (anything-mp-prefix-get-pattern pattern) nil t)
        (forward-line 1)))
 
- 
+
 ;;; Multiple regexp patterns 1 (order is preserved / prefix).
 ;;
 ;;
@@ -349,7 +349,7 @@ but \"foo\ bar\"=> (\"foobar\")."
 (defun anything-mp-1-search-backward (pattern &rest ignore)
   (re-search-backward (anything-mp-1-get-pattern pattern) nil t))
 
- 
+
 ;;; Multiple regexp patterns 2 (order is preserved / partial).
 ;;
 ;;
@@ -373,7 +373,7 @@ but \"foo\ bar\"=> (\"foobar\")."
 (defun anything-mp-2-search-backward (pattern &rest ignore)
   (re-search-backward (anything-mp-2-get-pattern pattern) nil t))
 
- 
+
 ;;; Multiple regexp patterns 3 (permutation).
 ;;
 ;;
@@ -395,10 +395,12 @@ This is done only if `anything-mp-3-pattern-str' is same as PATTERN."
   "Return a list of predicate/regexp cons cells.
 e.g ((identity . \"foo\") (identity . \"bar\"))."
   (unless (string= pattern "")
-    (loop for pat in (anything-mp-make-regexps pattern)
-          collect (if (string= "!" (substring pat 0 1))
-                      (cons 'not (substring pat 1))
-                      (cons 'identity pat)))))
+    (if (string-match "^!" pattern)
+        (anything-mp-3-get-patterns-internal (concat ". " pattern))
+      (loop for pat in (anything-mp-make-regexps pattern)
+            collect (if (string= "!" (substring pat 0 1))
+                        (cons 'not (substring pat 1))
+                      (cons 'identity pat))))))
 
 (defun anything-mp-3-match (str &optional pattern)
   "Check if PATTERN match STR.
@@ -422,11 +424,14 @@ i.e (identity (string-match \"foo\" \"foo bar\")) => t."
         while (funcall searchfn1 (or (cdar pat) "") nil t)
         for bol = (point-at-bol)
         for eol = (point-at-eol)
+        for (b . e) = (if (eq searchfn2 're-search-backward)
+                          (cons eol bol)
+                        (cons bol eol))
         if (loop for (pred . str) in (cdr pat) always
-                 (progn (goto-char bol)
-                        (funcall pred (funcall searchfn2 str eol t))))
-        do (goto-char eol) and return t
-        else do (goto-char eol)
+                 (progn (goto-char b)
+                        (funcall pred (funcall searchfn2 str e t))))
+        do (goto-char e) and return t
+        else do (goto-char e)
         finally return nil))
 
 (defun anything-mp-3-search (pattern &rest ignore)
@@ -434,14 +439,14 @@ i.e (identity (string-match \"foo\" \"foo bar\")) => t."
     (setq pattern (anything-mp-3-get-patterns pattern)))
   (anything-mp-3-search-base
    pattern 're-search-forward 're-search-forward))
-  
+
 (defun anything-mp-3-search-backward (pattern &rest ignore)
   (when (stringp pattern)
     (setq pattern (anything-mp-3-get-patterns pattern)))
   (anything-mp-3-search-base
    pattern 're-search-backward 're-search-backward))
 
-   
+
 ;;; mp-3p- (multiple regexp pattern 3 with prefix search)
 ;;
 ;;
@@ -455,7 +460,7 @@ e.g \"bar foo\" will match \"barfoo\" but not \"foobar\" contrarily to
     (and (funcall (car first) (anything-mp-prefix-match str (cdr first)))
          (loop for (predicate . regexp) in (cdr pat)
                always (funcall predicate (string-match regexp str))))))
-  
+
 (defun anything-mp-3p-search (pattern &rest ignore)
   (when (stringp pattern)
     (setq pattern (anything-mp-3-get-patterns pattern)))
@@ -468,7 +473,7 @@ e.g \"bar foo\" will match \"barfoo\" but not \"foobar\" contrarily to
   (anything-mp-3-search-base
    pattern 'anything-mp-prefix-search-backward 're-search-backward))
 
- 
+
 ;;; source compiler
 ;;
 ;;
@@ -486,7 +491,7 @@ e.g \"bar foo\" will match \"barfoo\" but not \"foobar\" contrarily to
        ,@source)))
 (add-to-list 'anything-compile-source-functions 'anything-compile-source--match-plugin t)
 
- 
+
 ;;; Highlight matches.
 ;;
 ;;
@@ -527,7 +532,7 @@ e.g \"bar foo\" will match \"barfoo\" but not \"foobar\" contrarily to
         (anything-mp-highlight-region
          (point-min) end requote 'anything-match)))))
 
- 
+
 ;;; Toggle anything-match-plugin
 ;;
 ;;
@@ -566,7 +571,7 @@ i.e anything-match-plugin."
             (enable-match-plugin)
             (message "Anything-match-plugin enabled"))))))
 
- 
+
 ;;;; Grep-candidates plug-in
 
 (defcustom anything-grep-candidates-fast-directory-regexp nil
@@ -625,17 +630,24 @@ If (direct-insert-match) is in the source, this function is used."
           (unless search-from-end
             (insert "cat " allfiles))
         (when search-from-end (insert " | "))
-        (loop for (flag . re) in (anything-mp-3-get-patterns-internal query)
+        (loop with exist-ary = (file-exists-p (concat (car files) ".ary"))
+              for (flag . re) in (anything-mp-3-get-patterns-internal query)
               for i from 0
               do
               (setq re (replace-regexp-in-string "^-" "\\-" re))
-              (unless (zerop i) (insert " | ")) 
-              (insert "grep -ih "
-                      (if (eq flag 'identity) "" "-v ")
-                      (shell-quote-argument re))
+              (unless (zerop i) (insert " | "))
+              (if (and (not (cdr files))
+                       (not search-from-end)
+                       (eq flag 'identity)
+                       (zerop i)
+                       exist-ary)
+                  (insert "sary " (shell-quote-argument re))
+                (insert "grep -ih "
+                        (if (eq flag 'identity) "" "-v ")
+                        (shell-quote-argument re)))
               (when (and (not search-from-end) (zerop i))
                 (insert " " allfiles))))
-      
+
       (when limit (insert (format " | head -n %d" limit)))
       (when filter (insert " | " filter))
       (buffer-string))))

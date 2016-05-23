@@ -4,7 +4,7 @@
 ;; Copyright 2010 Intel
 
 ;; Author: David Kågedal <davidk@lysator.liu.se>
-;;	   Mattias Engdegård <mattiase@acm.org>
+;;     Mattias Engdegård <mattiase@acm.org>
 ;; Maintainer: Mattias Engdegård <mattiase@acm.org>
 ;; Created: 27 Jan 2006
 ;; Keywords: docs
@@ -25,7 +25,7 @@
 ;; USA
 
 ;;; Commentary:
-;; 
+;;
 ;; This is an interface for managing Subversion working copies.  It
 ;; can show you an up-to-date view of the current status, and commit
 ;; changes. If also helps you do other tasks such as updating,
@@ -60,18 +60,18 @@
 ;; under point, or on a group of files that have been marked.  The
 ;; commands used for marking a file are the following:
 ;;
-;;   m      mark and go down  
-;;   DEL    unmark and go up  
+;;   m      mark and go down
+;;   DEL    unmark and go up
 ;;   u      unmark and go down
-;;   SPC    toggle mark       
-;;   M-DEL  unmark all       
+;;   SPC    toggle mark
+;;   M-DEL  unmark all
 ;;
 ;; The commands that operate on files are:
 ;;
 ;;   f      Visit the file under point (does not use marks)
 ;;   o      Visit the file under point in another window (does not use marks)
 ;;   =      Show diff of uncommitted changes.  This does not use marks
-;;            unless you give a prefix argument (C-u) 
+;;            unless you give a prefix argument (C-u)
 ;;   c      Commit files
 ;;   a      Add files
 ;;   r      Remove files
@@ -101,7 +101,7 @@
 ;; To view the Subversion log, type "M-x svn-log".
 ;;
 ;; Bugs and missing features:
-;; 
+;;
 ;; - Annotate (blame).
 ;; - Log, with a useful log mode where the user can easily view any revision
 ;;   as a diff or visit a revision of a file in a buffer.
@@ -123,7 +123,7 @@
 (defcustom svn-program "svn"
   "*The svn program to run"
   :type 'string
-  :group 'dsvn)  
+  :group 'dsvn)
 
 (defcustom svn-restore-windows nil
   "*Non-nil means that the window configuration is restored after commit"
@@ -193,7 +193,7 @@ Argument COMMAND is the svn subcommand to run.
 Optional argument ARGS is a list of arguments."
   (let ((output-buffer (generate-new-buffer "*svn-stdout*")))
     (apply 'call-process svn-program nil (list output-buffer nil) nil
-	   (symbol-name command) args)
+     (symbol-name command) args)
     (let ((stdout (with-current-buffer output-buffer (buffer-string))))
       (kill-buffer output-buffer)
       stdout)))
@@ -234,7 +234,7 @@ Argument STR is the output string."
   '(add revert resolved)
   "Subversion commands that don't accept the --non-interactive option.
 This is only important for svn 1.4, as 1.5 accepts this option for all
-commands.") 
+commands.")
 
 (defun svn-run (command args &optional description)
   "Run subversion command COMMAND with ARGS.
@@ -244,7 +244,7 @@ buffer to describe what is going on."
   ;; Clean up old output
   (let ((inhibit-read-only t))
     (delete-region svn-output-marker (point-max)))
-  
+
   (let* ((command-s (symbol-name command))
          (filter-func (intern (concat "svn-" command-s "-filter")))
          (sentinel-func (intern (concat "svn-" command-s "-sentinel")))
@@ -279,8 +279,8 @@ during the run."
 
   (if svn-running
       (setq svn-todo-queue
-	    (nconc svn-todo-queue
-		   (list (list command args file-filter))))
+      (nconc svn-todo-queue
+       (list (list command args file-filter))))
     (progn
       (set (make-local-variable 'svn-file-filter) file-filter)
       (svn-run command args))))
@@ -315,11 +315,11 @@ during the run."
     (when svn-todo-queue
       (let ((cmd-info (car svn-todo-queue)))
         (setq svn-todo-queue (cdr svn-todo-queue))
-	(let ((command (car cmd-info))
-	      (args (cadr cmd-info))
-	      (file-filter (car (cddr cmd-info))))
-	  (set (make-local-variable 'svn-file-filter) file-filter)
-	  (svn-run command args))))))
+  (let ((command (car cmd-info))
+        (args (cadr cmd-info))
+        (file-filter (car (cddr cmd-info))))
+    (set (make-local-variable 'svn-file-filter) file-filter)
+    (svn-run command args))))))
 
 (defun svn-diff (arg)
   "Run `svn diff'.
@@ -351,11 +351,11 @@ Argument ARG are the command line arguments."
         (commit-buf (current-buffer))
         (status-buf log-edit-parent-buffer)
         (window-conf saved-window-configuration)
-	;; XEmacs lacks make-temp-file but has make-temp-name + temp-directory
+  ;; XEmacs lacks make-temp-file but has make-temp-name + temp-directory
         (msg-file (if (fboundp 'make-temp-file)
-		      (make-temp-file "svn-commit")
-		    (make-temp-name (expand-file-name "svn-commit"
-						      (temp-directory))))))
+          (make-temp-file "svn-commit")
+        (make-temp-name (expand-file-name "svn-commit"
+                  (temp-directory))))))
     ;; Ensure final newline
     (goto-char (point-max))
     (unless (bolp)
@@ -364,9 +364,9 @@ Argument ARG are the command line arguments."
     (when (boundp 'vc-comment-ring)
       ;; insert message into comment ring, unless identical to the previous
       (let ((comment (buffer-string)))
-	(when (or (ring-empty-p vc-comment-ring)
-		  (not (equal comment (ring-ref vc-comment-ring 0))))
-	  (ring-insert vc-comment-ring comment))))
+  (when (or (ring-empty-p vc-comment-ring)
+      (not (equal comment (ring-ref vc-comment-ring 0))))
+    (ring-insert vc-comment-ring comment))))
     (kill-buffer commit-buf)
     (with-current-buffer status-buf
       (make-local-variable 'svn-commit-msg-file)
@@ -582,11 +582,11 @@ VERBOSE-P."
   "Edit the log message for the revision under point."
   (interactive)
   (let* ((commit-id (svn-log-current-commit))
-	 (log (svn-propget commit-id "svn:log"))
+   (log (svn-propget commit-id "svn:log"))
          (cwd default-directory)
          (parent-buffer (current-buffer))
-	 (buffer (get-buffer-create (format "*svn log message of r%d*"
-					    commit-id))))
+   (buffer (get-buffer-create (format "*svn log message of r%d*"
+              commit-id))))
     (log-edit 'svn-log-edit-done t
               `(lambda () (svn-log-edit-files ,commit-id))
               buffer)
@@ -596,7 +596,7 @@ VERBOSE-P."
     (set (make-local-variable 'svn-parent-buffer) parent-buffer)
     (setq default-directory cwd)
     (message (substitute-command-keys
-	      "Press \\[log-edit-done] when you are done editing."))))
+        "Press \\[log-edit-done] when you are done editing."))))
 
 (defun svn-log-edit-done ()
   (interactive)
@@ -668,9 +668,9 @@ name or revision number)."
 name or revision number)."
   (with-current-buffer
       (svn-run-hidden 'propget
-		      (cons propname
-			    (svn-prop-args file-or-rev)))
-    (substring (buffer-string) 0 -1)))	; trim final newline added by svn
+          (cons propname
+          (svn-prop-args file-or-rev)))
+    (substring (buffer-string) 0 -1)))  ; trim final newline added by svn
 
 (defun svn-get-props (file)
   "Return an alist containing the properties of FILE"
@@ -683,35 +683,35 @@ name or revision number)."
     (with-current-buffer (svn-run-hidden 'proplist (list file))
       (goto-char (point-min))
       (when (looking-at "Properties on ")
-	(forward-line 1)
-	(while (looking-at "  \\(.+\\)$")
-	  (setq propnames (cons (match-string 1) propnames))
-	  (forward-line 1))))
+  (forward-line 1)
+  (while (looking-at "  \\(.+\\)$")
+    (setq propnames (cons (match-string 1) propnames))
+    (forward-line 1))))
     (mapcar (lambda (propname)
-	      (cons propname (svn-propget file propname)))
-	    propnames)))
+        (cons propname (svn-propget file propname)))
+      propnames)))
 
 (defun svn-propedit (file)
   "Edit properties of FILE."
   (interactive (list (expand-file-name
-		      (or (svn-getprop (point) 'file)
-			  (read-file-name "Edit properties of file: "
-					  default-directory
-					  nil t
-					  (svn-getprop (point) 'dir))))))
+          (or (svn-getprop (point) 'file)
+        (read-file-name "Edit properties of file: "
+            default-directory
+            nil t
+            (svn-getprop (point) 'dir))))))
   (let ((local-file (svn-local-file-name file)))
     (when (string-equal local-file "")
-	(setq local-file ".")
-	(setq file (file-name-as-directory file)))
+  (setq local-file ".")
+  (setq file (file-name-as-directory file)))
     (svn-check-running)
     (let ((buf-name (format "*propedit %s*" local-file)))
       (if (get-buffer buf-name)
-	  (kill-buffer buf-name))
+    (kill-buffer buf-name))
       (let ((prop-alist (svn-get-props local-file))
-	    (propedit-buf (get-buffer-create buf-name)))
-	(switch-to-buffer-other-window propedit-buf)
-	(svn-propedit-mode)
-	(insert
+      (propedit-buf (get-buffer-create buf-name)))
+  (switch-to-buffer-other-window propedit-buf)
+  (svn-propedit-mode)
+  (insert
       "# Properties of " local-file "\n"
       "#\n"
       "# Lines are on the form PROPNAME: VALUE for single-line values,\n"
@@ -721,36 +721,36 @@ name or revision number)."
       "# Change, add, delete or rename properties just by editing this\n"
       "# buffer; then press "
          (substitute-command-keys "\\[svn-propedit-done]")
-	 " to save changes.\n\n")
-	(mapc (lambda (prop)
-		(let* ((value (cdr prop))
-		       (lines nil)
-		       (len (length value))
-		       (ofs 0))
-		  ;; Split value in lines - we can't use split-string because
-		  ;; its behaviour is not consistent across Emacs versions.
-		  (while (<= ofs len)
-		    (let* ((nl (or (string-match "\n" value ofs) len)))
-		      (setq lines (cons (substring value ofs nl) lines))
-		      (setq ofs (+ nl 1))))
-		  (setq lines (nreverse lines))
-		  ;; The lines list now contains one string per line, and
-		  ;; an empty list at the end if the string finished in a \n.
+   " to save changes.\n\n")
+  (mapc (lambda (prop)
+    (let* ((value (cdr prop))
+           (lines nil)
+           (len (length value))
+           (ofs 0))
+      ;; Split value in lines - we can't use split-string because
+      ;; its behaviour is not consistent across Emacs versions.
+      (while (<= ofs len)
+        (let* ((nl (or (string-match "\n" value ofs) len)))
+          (setq lines (cons (substring value ofs nl) lines))
+          (setq ofs (+ nl 1))))
+      (setq lines (nreverse lines))
+      ;; The lines list now contains one string per line, and
+      ;; an empty list at the end if the string finished in a \n.
 
-		  (insert (car prop) ":")
-		  (if (> (length lines) 1)
-		      (progn
-			(insert "\n")
-			(mapc (lambda (line) (insert ">" line "\n"))
-			      lines))
-		    (insert " " (or (car lines) "") "\n"))))
-	      (sort prop-alist #'(lambda (a b) (string< (car a) (car b)))))
-	(make-local-variable 'svn-propedit-file)
-	(setq svn-propedit-file file)
-	(setq default-directory (file-name-directory file))
-	(message
-	 (substitute-command-keys
-	  "Press \\[svn-propedit-done] when you are done editing."))))))
+      (insert (car prop) ":")
+      (if (> (length lines) 1)
+          (progn
+      (insert "\n")
+      (mapc (lambda (line) (insert ">" line "\n"))
+            lines))
+        (insert " " (or (car lines) "") "\n"))))
+        (sort prop-alist #'(lambda (a b) (string< (car a) (car b)))))
+  (make-local-variable 'svn-propedit-file)
+  (setq svn-propedit-file file)
+  (setq default-directory (file-name-directory file))
+  (message
+   (substitute-command-keys
+    "Press \\[svn-propedit-done] when you are done editing."))))))
 
 (defvar svn-propedit-mode-map nil
   "Keymap for `svn-propedit-mode'.")
@@ -763,26 +763,26 @@ name or revision number)."
   (interactive)
   (kill-all-local-variables)
   (setq major-mode 'svn-propedit-mode
-	mode-name "Svn propedit")
+  mode-name "Svn propedit")
   (use-local-map svn-propedit-mode-map)
   (setq font-lock-defaults
-	'((("^#.*$"			       ;comment
-	    . 'font-lock-comment-face)
-	   ("^\\([^ \t\n#>][^ \t\n]*\\):"      ;property name
-	    . (1 'bold))
-	   ("^[^ \t\n#>][^ \t\n]*: *\\(.*\\)$" ;property value
-	    . (1 'font-lock-function-name-face))
-	   ("^>"			       ;multi-line marker
-	    . 'bold)
-	   ("^>\\(.*\\)$"		       ;property value (continued)
-	    . (1 'font-lock-function-name-face))
-	   )
-	  nil				;keywords-only
-	  nil				;case-fold
-	  ;; syntax-alist: don't fontify quotes specially in any way
-	  ((?\" . "."))
-	  nil				;syntax-begin
-	  ))
+  '((("^#.*$"              ;comment
+      . 'font-lock-comment-face)
+     ("^\\([^ \t\n#>][^ \t\n]*\\):"      ;property name
+      . (1 'bold))
+     ("^[^ \t\n#>][^ \t\n]*: *\\(.*\\)$" ;property value
+      . (1 'font-lock-function-name-face))
+     ("^>"             ;multi-line marker
+      . 'bold)
+     ("^>\\(.*\\)$"            ;property value (continued)
+      . (1 'font-lock-function-name-face))
+     )
+    nil         ;keywords-only
+    nil         ;case-fold
+    ;; syntax-alist: don't fontify quotes specially in any way
+    ((?\" . "."))
+    nil         ;syntax-begin
+    ))
   (font-lock-mode))
 
 (defun svn-props-from-buffer ()
@@ -791,33 +791,33 @@ name or revision number)."
     (let (prop-alist)
       (goto-char (point-min))
       (while (not (eobp))
-	(cond ((looking-at "^\\([^ \t\n#>][^ \t\n]*\\): *\\(.*\\)$")
-	       (let ((prop-name (match-string 1))
-		     (value (match-string 2)))
-		 (set-text-properties 0 (length prop-name) nil prop-name)
-		 (set-text-properties 0 (length value) nil value)
-		 (when (assoc prop-name prop-alist)
-		   (error "Duplicated property %s" prop-name))
-		 (setq prop-alist (cons (cons prop-name value) prop-alist))))
-	      ((looking-at "^>\\(.*\\)$")
-	       (let ((extra-line (match-string 1)))
-		 (set-text-properties 0 (length extra-line) nil extra-line)
-		 (when (null prop-alist)
-		   (error "Continued line not preceded by property name"))
-		 (let ((old-value (cdar prop-alist)))
-		   (setcdr (car prop-alist)
-			   (concat old-value "\n" extra-line))))))
-	(forward-line 1))
+  (cond ((looking-at "^\\([^ \t\n#>][^ \t\n]*\\): *\\(.*\\)$")
+         (let ((prop-name (match-string 1))
+         (value (match-string 2)))
+     (set-text-properties 0 (length prop-name) nil prop-name)
+     (set-text-properties 0 (length value) nil value)
+     (when (assoc prop-name prop-alist)
+       (error "Duplicated property %s" prop-name))
+     (setq prop-alist (cons (cons prop-name value) prop-alist))))
+        ((looking-at "^>\\(.*\\)$")
+         (let ((extra-line (match-string 1)))
+     (set-text-properties 0 (length extra-line) nil extra-line)
+     (when (null prop-alist)
+       (error "Continued line not preceded by property name"))
+     (let ((old-value (cdar prop-alist)))
+       (setcdr (car prop-alist)
+         (concat old-value "\n" extra-line))))))
+  (forward-line 1))
 
       ;; Remove the extra leading newline from multi-line values
       (mapcar (lambda (prop)
-		(let ((name (car prop))
-		      (value (cdr prop)))
-		  (if (and (not (equal value ""))
-			   (equal (substring value 0 1) "\n"))
-		      (cons name (substring value 1))
-		    prop)))
-	      prop-alist))))
+    (let ((name (car prop))
+          (value (cdr prop)))
+      (if (and (not (equal value ""))
+         (equal (substring value 0 1) "\n"))
+          (cons name (substring value 1))
+        prop)))
+        prop-alist))))
 
 (defun svn-propdel (file prop-name)
   "Delete FILE's property PROP-NAME."
@@ -841,27 +841,27 @@ file name or revision number)."
   "Apply property changes to the file."
   (interactive)
   (let ((wc-props (svn-get-props svn-propedit-file))
-	(new-props (svn-props-from-buffer))
-	(changes 0))
+  (new-props (svn-props-from-buffer))
+  (changes 0))
 
     ;; first remove properties that the user deleted from the buffer
     (mapc (lambda (wc-prop)
-	    (let ((prop-name (car wc-prop)))
-	      (when (not (assoc prop-name new-props))
-		(message "Deleting property %s" prop-name)
-		(svn-propdel svn-propedit-file prop-name)
-		(setq changes (1+ changes)))))
-	  wc-props)
+      (let ((prop-name (car wc-prop)))
+        (when (not (assoc prop-name new-props))
+    (message "Deleting property %s" prop-name)
+    (svn-propdel svn-propedit-file prop-name)
+    (setq changes (1+ changes)))))
+    wc-props)
 
     ;; then set the properties that have changed or are new
     (mapc (lambda (new-prop)
-	    (let* ((prop-name (car new-prop))
-		   (wc-prop (assoc prop-name wc-props)))
-	      (unless (equal new-prop wc-prop)
-		(message "Setting property %s" prop-name)
-		(svn-propset svn-propedit-file prop-name (cdr new-prop))
-		(setq changes (1+ changes)))))
-	  new-props)
+      (let* ((prop-name (car new-prop))
+       (wc-prop (assoc prop-name wc-props)))
+        (unless (equal new-prop wc-prop)
+    (message "Setting property %s" prop-name)
+    (svn-propset svn-propedit-file prop-name (cdr new-prop))
+    (setq changes (1+ changes)))))
+    new-props)
     (cond
      ((> changes 1) (message "Changed %d properties." changes))
      ((= changes 0) (message "No properties changed."))))
@@ -974,15 +974,15 @@ directories explicitly listed in FILES."
   ;; of files and directories we are interested in.
 
   (let ((flag (if recursive nil '("-N")))
-	(file-filter
-	 (if recursive
-	     nil
-	   (mapcar (lambda (file)
-		     ;; trim trailing slash for directory comparison to work
-		     (if (equal (substring file -1) "/")
-			 (substring file 0 -1)
-		       file))
-		   files))))
+  (file-filter
+   (if recursive
+       nil
+     (mapcar (lambda (file)
+         ;; trim trailing slash for directory comparison to work
+         (if (equal (substring file -1) "/")
+       (substring file 0 -1)
+           file))
+       files))))
     (svn-run-async 'status-v (append flag files) file-filter)))
 
 (defun svn-refresh-file ()
@@ -1006,12 +1006,12 @@ outside."
       (setq file (file-name-as-directory file)))
   (let ((exp-default-dir (expand-file-name default-directory)))
     (if (file-name-absolute-p file)
-	(let ((ddl (length exp-default-dir)))
-	  (if (or (< (length file) ddl)
-		  (not (string= (substring file 0 ddl)
-				exp-default-dir)))
-	      (error "Outside working copy")
-	    (substring file ddl)))
+  (let ((ddl (length exp-default-dir)))
+    (if (or (< (length file) ddl)
+      (not (string= (substring file 0 ddl)
+        exp-default-dir)))
+        (error "Outside working copy")
+      (substring file ddl)))
       file)))
 
 (defun svn-refresh-item (file recursive)
@@ -1025,11 +1025,11 @@ outside."
 (defun svn-refresh-one (file)
   "Run `svn status' on FILE."
   (interactive (list (expand-file-name
-		      (read-file-name "Svn status on file: "
-				      default-directory
-				      nil t
-				      (or (svn-getprop (point) 'file)
-					  (svn-getprop (point) 'dir))))))
+          (read-file-name "Svn status on file: "
+              default-directory
+              nil t
+              (or (svn-getprop (point) 'file)
+            (svn-getprop (point) 'dir))))))
   (svn-refresh-item file t))
 
 (defun svn-cleanup-status ()
@@ -1090,9 +1090,9 @@ outside."
               (filename (svn-normalise-path (match-string 6))))
           (delete-region (match-beginning 0)
                          (match-end 0))
-	  (when (or (not svn-file-filter)
-		    (member filename svn-file-filter))
-	    (svn-insert-file filename status)))))))
+    (when (or (not svn-file-filter)
+        (member filename svn-file-filter))
+      (svn-insert-file filename status)))))))
 
 (defun svn-status-v-sentinel (proc reason)
   (with-current-buffer (process-buffer proc)
@@ -1233,11 +1233,11 @@ been modified."
   (let ((buf (find-buffer-visiting filename)))
     (when (and buf (not (buffer-modified-p buf)))
       (with-current-buffer buf
-	(let ((was-ro buffer-read-only))
-	  (condition-case nil
-	      (revert-buffer t t)
-	    (error nil))
-	  (when was-ro (toggle-read-only 1)))))))
+  (let ((was-ro buffer-read-only))
+    (condition-case nil
+        (revert-buffer t t)
+      (error nil))
+    (when was-ro (toggle-read-only 1)))))))
 
 (defun svn-complete-url (url pred all)
   (string-match "\\`\\(.*/\\)\\([^/]*\\)\\'" url)
@@ -1340,7 +1340,7 @@ been modified."
            nil)
           (t
            (string< fn1 fn2)))))
-          
+
 (defun svn-insert-file (filename status &optional info)
   (save-excursion
     (save-restriction
@@ -1421,8 +1421,8 @@ been modified."
                       (insert "         Top-level directory:")
                     (insert "         Directory " dir ":"))
                   (newline)
-		  ;; Next line only needed on XEmacs
-		  (remove-text-properties start (point) '(svn-file nil))
+      ;; Next line only needed on XEmacs
+      (remove-text-properties start (point) '(svn-file nil))
                   (add-text-properties start (point)
                                        (list 'face 'bold
                                              'svn-dir dir))))))
@@ -1435,7 +1435,7 @@ been modified."
                 (not (string= filename (get-text-property pos 'svn-file))))
       (setq pos (next-single-property-change pos 'svn-file)))
     pos))
-  
+
 (defun svn-update-file-status (filename status-char)
   (let ((inhibit-read-only t))
     (save-excursion
@@ -1506,7 +1506,7 @@ been modified."
 \\{svn-status-mode-map}"
   (interactive)
   (kill-all-local-variables)
-  
+
   (make-local-variable 'svn-files-start)
   (make-local-variable 'svn-files-stop)
   (make-local-variable 'svn-last-inserted-marker)
@@ -1568,10 +1568,10 @@ been modified."
     (let ((start (point)))
       (forward-line)
       (let ((end (point))
-	    (prop (list 'face 'svn-mark-face)))
-	(if mark
-	    (add-text-properties start end prop)
-	  (remove-text-properties start end prop))))))
+      (prop (list 'face 'svn-mark-face)))
+  (if mark
+      (add-text-properties start end prop)
+    (remove-text-properties start end prop))))))
 
 (defun svn-set-mark (pos mark)
   "Update the mark on the status line at POS.
@@ -1648,7 +1648,7 @@ argument."
                   (lambda (pos)
                     (or (eq (svn-file-status pos) ?\?)
                         (error "%s is already under version control"
-			       (svn-getprop pos 'file)))))))
+             (svn-getprop pos 'file)))))))
     (svn-run 'add actions "Adding files")))
 
 (defun svn-add-filter (proc str)
@@ -1673,75 +1673,75 @@ argument."
   "Whether all marked files/directories can be deleted undoably"
   (or (null actions)
       (and (let* ((fp (car actions))
-		  (pos (cadr fp)))
-	     ;; We can safely remove unmodified files under version control,
-	     ;; and idempotently already deleted files.
-	     (memq (svn-file-status pos) '(?\  ?D)))
-	   (svn-can-undo-deletion-p (cdr actions)))))
+      (pos (cadr fp)))
+       ;; We can safely remove unmodified files under version control,
+       ;; and idempotently already deleted files.
+       (memq (svn-file-status pos) '(?\  ?D)))
+     (svn-can-undo-deletion-p (cdr actions)))))
 
 (defun svn-plural (count noun)
   (format "%d %s" count
-	  (if (= count 1)
-	      noun
-	    (if (equal (substring noun -1) "y")
-		(concat (substring noun 0 -1) "ies")
-	      (concat noun "s")))))
+    (if (= count 1)
+        noun
+      (if (equal (substring noun -1) "y")
+    (concat (substring noun 0 -1) "ies")
+        (concat noun "s")))))
 
 (defun svn-delete-dir-tree (file)
   "Remove a file or directory tree."
   (cond ((file-symlink-p file)
-	 ;; In Emacs 21, delete-file refuses to delete a symlink to a
-	 ;; directory. We work around it by overwriting the symlink
-	 ;; with a dangling link first. (We can't do that in later
-	 ;; Emacs versions, because make-symbolic-link may decide to
-	 ;; create the link inside the old link target directory.)
-	 (when (<= emacs-major-version 21)
-	   (make-symbolic-link "/a/file/that/does/not/exist" file t))
-	 (delete-file file))
+   ;; In Emacs 21, delete-file refuses to delete a symlink to a
+   ;; directory. We work around it by overwriting the symlink
+   ;; with a dangling link first. (We can't do that in later
+   ;; Emacs versions, because make-symbolic-link may decide to
+   ;; create the link inside the old link target directory.)
+   (when (<= emacs-major-version 21)
+     (make-symbolic-link "/a/file/that/does/not/exist" file t))
+   (delete-file file))
 
-	((file-directory-p file)
-	 (mapc #'(lambda (f)
-		   (unless (or (equal f ".") (equal f ".."))
-		     (svn-delete-dir-tree (concat file "/" f))))
-	       (directory-files file))
-	 (delete-directory file))
+  ((file-directory-p file)
+   (mapc #'(lambda (f)
+       (unless (or (equal f ".") (equal f ".."))
+         (svn-delete-dir-tree (concat file "/" f))))
+         (directory-files file))
+   (delete-directory file))
 
-	(t 				; regular file
-	 (delete-file file))))
+  (t          ; regular file
+   (delete-file file))))
 
 (defun svn-remove-file ()
   "Remove the selected files and directories."
   (interactive)
   (let* ((actions (svn-actions))
-	 (dir-count
-	  (length (delq nil (mapcar (lambda (fp)
-				      (file-directory-p (car fp)))
-				    actions))))
-	 (nondir-count (- (length actions) dir-count))
-	 (inhibit-read-only t))
+   (dir-count
+    (length (delq nil (mapcar (lambda (fp)
+              (file-directory-p (car fp)))
+            actions))))
+   (nondir-count (- (length actions) dir-count))
+   (inhibit-read-only t))
     (when (or (svn-can-undo-deletion-p actions)
-	      (y-or-n-p
-	       (format "Really remove %s? "
-		       (cond ((zerop dir-count)
-			      (svn-plural nondir-count "file"))
-			     ((zerop nondir-count)
-			      (svn-plural dir-count "directory"))
-			     (t
-			      (concat 
-			       (svn-plural dir-count "directory")
-			       " and "
-			       (svn-plural nondir-count "file")))))))
+        (y-or-n-p
+         (format "Really remove %s? "
+           (cond ((zerop dir-count)
+            (svn-plural nondir-count "file"))
+           ((zerop nondir-count)
+            (svn-plural dir-count "directory"))
+           (t
+            (concat
+             (svn-plural dir-count "directory")
+             " and "
+             (svn-plural nondir-count "file")))))))
       (let ((svn-files ()))
         (mapc (lambda (fp)
-		(let ((file (car fp))
-		      (pos (cadr fp)))
-		  (if (/= (svn-file-status pos) ?\?)
-		      (setq svn-files (cons file svn-files))
-		    (svn-delete-dir-tree file)
-		    (svn-remove-line pos))))
-	      ;; traverse the list backwards, to keep buffer positions of
-	      ;; remaining files valid
-	      (reverse actions))
+    (let ((file (car fp))
+          (pos (cadr fp)))
+      (if (/= (svn-file-status pos) ?\?)
+          (setq svn-files (cons file svn-files))
+        (svn-delete-dir-tree file)
+        (svn-remove-line pos))))
+        ;; traverse the list backwards, to keep buffer positions of
+        ;; remaining files valid
+        (reverse actions))
         (when svn-files
           (svn-run 'delete (cons "--force" svn-files) "Removing files"))))))
 
@@ -1756,7 +1756,7 @@ argument."
                   (or (memq (svn-file-status pos) '(?D ?A ?M ?C ?!))
                       (memq (svn-prop-status pos) '(?D ?A ?M ?C ?!))
                       (error "%s has no local changes"
-			     (svn-getprop pos 'file)))))))
+           (svn-getprop pos 'file)))))))
     (when (y-or-n-p (format "Really revert %d %s? "
                             (length files)
                             (if (> (length files) 1)
@@ -1780,9 +1780,9 @@ argument."
   (let ((files (svn-action-files
                 (lambda (pos)
                   (or (= (svn-file-status pos) ?C)
-		      (= (svn-prop-status pos) ?C)
-		      (error "%s has no conflicts"
-			     (svn-getprop pos 'file)))))))
+          (= (svn-prop-status pos) ?C)
+          (error "%s has no conflicts"
+           (svn-getprop pos 'file)))))))
     (make-local-variable 'svn-resolved-files)
     (setq svn-resolved-files files)
     (svn-run 'resolved files "Marking resolved files")))
@@ -1837,18 +1837,18 @@ argument."
   "Toggle the mark for the file under point, or files in the dir under point."
   (interactive)
   (cond ((svn-getprop (point) 'file)
-	 (svn-toggle-file-mark))
-	((svn-getprop (point) 'dir)
-	 (let ((dir (svn-getprop (point) 'dir))
-	       file)
-	   (save-excursion
-	     (forward-line 1)
-	     (setq file (svn-getprop (point) 'file))
-	     (while (and file
-			 (svn-in-dir-p dir file))
-	       (svn-toggle-file-mark)
-	       (forward-line 1)
-	       (setq file (svn-getprop (point) 'file))))))))
+   (svn-toggle-file-mark))
+  ((svn-getprop (point) 'dir)
+   (let ((dir (svn-getprop (point) 'dir))
+         file)
+     (save-excursion
+       (forward-line 1)
+       (setq file (svn-getprop (point) 'file))
+       (while (and file
+       (svn-in-dir-p dir file))
+         (svn-toggle-file-mark)
+         (forward-line 1)
+         (setq file (svn-getprop (point) 'file))))))))
 
 (defun svn-change-mark-forward (mark)
   "Set or clear the mark for the file under point and move to next line."
@@ -1863,7 +1863,7 @@ argument."
                file)
            (forward-line 1)
            (setq file (svn-getprop (point) 'file))
-           (while (and file 
+           (while (and file
                        (svn-in-dir-p dir file))
              (svn-set-mark (point) mark)
              (forward-line 1)
@@ -1942,10 +1942,10 @@ files instead."
 (defun svn-next-file-pos ()
   (let ((pos (next-single-property-change (point) 'svn-file)))
     (and pos
-	 ;; Skip lines that don't contain file info
-	 (if (null (get-text-property pos 'svn-file))
-	     (next-single-property-change pos 'svn-file)
-	   pos))))
+   ;; Skip lines that don't contain file info
+   (if (null (get-text-property pos 'svn-file))
+       (next-single-property-change pos 'svn-file)
+     pos))))
 
 (defun svn-next-file (arg)
   "Move to the ARGth next line containing file information."
@@ -1993,56 +1993,56 @@ files instead."
 
 (defun svn-format-help-column (table)
   (mapcar (lambda (cmd-desc)
-	       (let ((cmd (car cmd-desc))
-		     (desc (cadr cmd-desc)))
-		 (format "%-4s %s"
-			 (key-description (car (where-is-internal cmd)))
-			 desc)))
-	     table))
+         (let ((cmd (car cmd-desc))
+         (desc (cadr cmd-desc)))
+     (format "%-4s %s"
+       (key-description (car (where-is-internal cmd)))
+       desc)))
+       table))
 
 (defun svn-merge-columns-list (columns fmt)
   (let ((first-lines (mapcar #'car columns)))
     (and (eval `(or ,@first-lines))
-	 (cons (mapconcat (lambda (str) (format fmt (or str "")))
-			  first-lines " | ")
-	       (svn-merge-columns-list (mapcar #'cdr columns) fmt)))))
+   (cons (mapconcat (lambda (str) (format fmt (or str "")))
+        first-lines " | ")
+         (svn-merge-columns-list (mapcar #'cdr columns) fmt)))))
 
 (defun svn-merge-columns (columns width)
   (mapconcat #'identity
-	     (svn-merge-columns-list columns (format "%%-%ds" width))
-	     "\n"))
+       (svn-merge-columns-list columns (format "%%-%ds" width))
+       "\n"))
 
 (defun svn-status-help ()
   "Display keyboard help for the svn-status buffer."
   (interactive)
   (message (svn-merge-columns
-	    (list (svn-format-help-column
-		   '((svn-commit "commit marked files")
-		     (svn-add-file "add marked files")
-		     (svn-remove-file "remove marked files")
-		     (svn-revert "revert marked files")
-		     (svn-update-current "update working copy")
-		     (svn-resolve "resolve conflicts")
-		     (svn-move "rename/move files")
-		     (svn-switch "switch working tree")
-		     (svn-merge "merge into WC")
-		     (svn-propedit "edit properties")))
-		  (svn-format-help-column
-		   '((svn-mark-forward "mark and go down")
-		     (svn-unmark-backward "go up and unmark")
-		     (svn-unmark-forward  "unmark and go down")
-		     (svn-toggle-mark "toggle mark")
-		     (svn-unmark-all "unmark all")))
-		  (svn-format-help-column
-		   '((svn-find-file "visit file")
-		     (svn-find-file-other-window "visit file other win")
-		     (svn-diff-file "show file diff")
-		     (svn-file-log "show file log")
-		     (svn-refresh "refresh all files")
-		     (svn-refresh-file "refresh marked files")
-		     (svn-refresh-one "refresh named file")
-		     (svn-expunge "expunge unchanged"))))
-	    24)))
+      (list (svn-format-help-column
+       '((svn-commit "commit marked files")
+         (svn-add-file "add marked files")
+         (svn-remove-file "remove marked files")
+         (svn-revert "revert marked files")
+         (svn-update-current "update working copy")
+         (svn-resolve "resolve conflicts")
+         (svn-move "rename/move files")
+         (svn-switch "switch working tree")
+         (svn-merge "merge into WC")
+         (svn-propedit "edit properties")))
+      (svn-format-help-column
+       '((svn-mark-forward "mark and go down")
+         (svn-unmark-backward "go up and unmark")
+         (svn-unmark-forward  "unmark and go down")
+         (svn-toggle-mark "toggle mark")
+         (svn-unmark-all "unmark all")))
+      (svn-format-help-column
+       '((svn-find-file "visit file")
+         (svn-find-file-other-window "visit file other win")
+         (svn-diff-file "show file diff")
+         (svn-file-log "show file log")
+         (svn-refresh "refresh all files")
+         (svn-refresh-file "refresh marked files")
+         (svn-refresh-one "refresh named file")
+         (svn-expunge "expunge unchanged"))))
+      24)))
 
 ;;; Hooks
 
@@ -2084,7 +2084,7 @@ the function is the local form of the filename and the buffer position
 where the file information is."
   (let* ((svn-buffers (svn-buffer-list))
          (inhibit-read-only t)
-	 (file-path (file-truename file-name)))
+   (file-path (file-truename file-name)))
     (while svn-buffers
       (with-current-buffer (car svn-buffers)
         (let ((dir (file-truename default-directory)))
@@ -2130,14 +2130,14 @@ where the file information is."
              (not (member (car flags) '("ann" "annotate" "blame"
                                         "diff" "praise" "status"))))
     (mapc (lambda (file)
-	    (svn-foreach-svn-buffer
-	     file
-	     (lambda (local-file-name file-pos)
-	       (svn-refresh-item local-file-name t))))
-	  ;; In emacs versions prior to 23, the argument is a single file.
-	  (if (listp file-or-files)
-	      file-or-files
-	    (list file-or-files)))))
+      (svn-foreach-svn-buffer
+       file
+       (lambda (local-file-name file-pos)
+         (svn-refresh-item local-file-name t))))
+    ;; In emacs versions prior to 23, the argument is a single file.
+    (if (listp file-or-files)
+        file-or-files
+      (list file-or-files)))))
 
 (add-hook 'vc-post-command-functions 'svn-after-vc-command)
 

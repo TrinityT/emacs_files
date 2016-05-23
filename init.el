@@ -1,7 +1,8 @@
 ;;; NOTICE: 新規環境構築する場合のコマンド例
 ;;; $ rm -rf ~/.emacs
 ;;; $ rm -rf ~/.emacs.d
-;;; $ ln -fns ~/Dropbox/development/emacs_files ~/.emacs.d
+;;; $ ln -fns ~/Dropbox/development/emacs_files/elisp ~/.emacs.d
+;;; $ ln -fns ~/Dropbox/development/emacs_files/init.el ~/.emacs.d/init.el
 ;;; $ sudo apt-get install elscreen emacs-goodies-el xsel php-elisp lv
 
 ;;; デフォルトload-path
@@ -21,12 +22,36 @@
 ;  (auto-install-update-emacswiki-package-name t)
 ;  (auto-install-compatibility-setup)
 
+; ディレクトリ操作関連
+;; リスト表示オプション
+(setq dired-listing-switches (purecopy "-laGh"))
+;; diredでディレクトリを開いていくときに新規バッファを作らないようにする対応
+;(defun dired-open-in-accordance-with-situation ()
+;    (interactive)
+;    (cond ((string-match "\\(?:\\.\\.?\\)"
+;                         (format "%s" (thing-at-point 'filename)))
+;           (dired-find-alternate-file))
+;          ((file-directory-p (dired-get-filename))
+;           (dired-find-alternate-file))
+;          (t
+;           (dired-find-file))))
+;(put 'dired-find-alternate-file 'disabled nil)
+;(define-key dired-mode-map (kbd "RET") 'dired-open-in-accordance-with-situation)
+;(define-key dired-mode-map (kbd "a") 'dired-find-file)
+
+;;M-gで指定行ジャンプ
+(global-set-key "\M-g" 'goto-line)
+
 ;;; grep設定
-(setq grep-host-defaults-alist nil)
-(setq grep-find-template "find . <X> -type f <F> -print0 | xargs -0 -e grep -nH -e <R>")
-;;; ※grepにlgrepを使用する場合
-;(setq grep-template "lgrep <C> -n <R> <F> <N>")
-;(setq grep-find-template "find . <X> -type f <F> -print0 | xargs -0 -e lgrep -n -Ou8 <R>")
+(require 'wgrep)
+(setf wgrep-enable-key "e")
+
+;;; 文字列置換
+(fset 'rs (symbol-function 'replace-string))
+
+
+;;; 大文字小文字区別有効
+(setq-default case-fold-search nil)
 
 ;;; デフォルト文字コード設定
 ;(set-default-coding-systems 'sjis)
@@ -78,16 +103,15 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace)
 
 ;; 起動時のサイズ,表示位置
-(setq initial-frame-alist
+(setq default-frame-alist
       (append (list
          '(font . "Ricty-10")
          '(width . 200)
-	       '(height . 60)
-	       '(top . 0)
-	       '(left . 0)
-	       )
-	      initial-frame-alist))
-(setq default-frame-alist initial-frame-alist)
+         '(height . 60)
+         '(top . 0)
+         '(left . 0)
+         )
+        default-frame-alist))
 
 ;;; F11でfullscreenを切り替えられるようにする
 (defun my-fullscreen ()
@@ -123,6 +147,9 @@
   (interactive)
   (mapc 'kill-buffer (buffer-list)))
 
+;;; Undoバッファを無限にする
+(setq undo-outer-limit nil)
+
 ;;; ウィンドウ切り替えをShift+矢印でできるようにする
 (setq windmove-wrap-around t)
 (windmove-default-keybindings)
@@ -131,9 +158,14 @@
 (define-key global-map (kbd "C-t") 'other-window)
 
 ;;; undo-redo
-(require 'redo+)
-(setq undo-no-redo t)
-(global-set-key "\C-\\" 'redo)
+(require 'undo-tree)
+(global-undo-tree-mode)
+(define-key global-map "\C-\\" nil) ;
+(global-set-key (kbd "M-\\") 'undo-tree-redo)
+(global-set-key (kbd "C-\\") 'undo-tree-redo)
+;;(require 'redo+)
+;;(setq undo-no-redo t)
+;;(global-set-key "\C-\\" 'redo)
 
 ;;; indent-region別名設定
 (define-key global-map (kbd "C-c i") 'indent-region)
@@ -142,15 +174,33 @@
 (setq-default tab-width 2 indent-tabs-mode nil)
 
 ;;; クリップボード共有設定(xselを使用している。)
-(setq interprogram-paste-function
-     (lambda ()
-        (shell-command-to-string "xsel -b -o")))
-(setq interprogram-cut-function
-     (lambda (text &optional rest)
-        (let* ((process-connection-type nil)
-               (proc (start-process "xsel" "*Messages*" "xsel" "-b" "-i")))
-          (process-send-string proc text)
-          (process-send-eof proc))))
+;(setq interprogram-paste-function
+;    (lambda ()
+;       (shell-command-to-string "xsel -b -o")))
+;(setq interprogram-cut-function
+;    (lambda (text &optional rest)
+;       (let* ((process-connection-type nil)
+;              (proc (start-process "xsel" "*Messages*" "xsel" "-b" "-i")))
+;         (process-send-string proc text)
+;         (process-send-eof proc))))
+;;; clipboard
+;(if (display-graphic-p)
+;    (progn
+;      ;; if on window-system
+;      (setq x-select-enable-clipboard t)
+;      (global-set-key "\C-y" 'x-clipboard-yank))
+;  ;; else (on terminal)
+;  (setq interprogram-paste-function
+;        (lambda ()
+;          (shell-command-to-string "xsel -b -o")))
+;  (setq interprogram-cut-function
+;        (lambda (text &optional rest)
+;          (let* ((process-connection-type nil)
+;                 (proc (start-process "xsel" "*Messages*" "xsel" "-b" "-i")))
+;            (process-send-string proc text)
+;            (process-send-eof proc)))))
+
+;; camelize
 
 ;;; auto-complete
 (require 'auto-complete)
@@ -161,19 +211,15 @@
 (autoload 'svn-update "dsvn" "Run `svn update'." t)
 
 ;;; magit設定
+;;;(load-library "dash")
+;;;(require 'with-editor)
 (require 'magit)
-(fset 'mgs (symbol-function 'magit-status))
-;;; git blame
-(add-to-list 'load-path "~/.emacs.d/elisp/mo-git-blame")
-(autoload 'mo-git-blame-file "mo-git-blame" nil t)
-(autoload 'mo-git-blame-current "mo-git-blame" nil t)
-
+(require 'magit-blame)
+(fset 'mg (symbol-function 'magit-status))
+(setq magit-last-seen-setup-instructions "1.4.0")
 
 ;;; メニューを日本語化
-(require 'menu-tree)
-
-;;; grep-edit
-(require 'grep-edit)
+;(require 'menu-tree)
 
 ;;; line-number表示
 (require 'linum)
@@ -200,53 +246,22 @@
 (color-theme-t2j)
 
 ;; タブ, 全角スペース、改行直前の半角スペースを表示する
-(when (require 'jaspace nil t)
-  (when (boundp 'jaspace-modes)
-    (setq jaspace-modes (append jaspace-modes
-                                (list 'php-mode
-                                      'yaml-mode
-                                      'javascript-mode
-                                      'ruby-mode
-                                      'text-mode
-                                      'fundamental-mode))))
-  (when (boundp 'jaspace-alternate-jaspace-string)
-    (setq jaspace-alternate-jaspace-string "□"))
-  (when (boundp 'jaspace-highlight-tabs)
-    (setq jaspace-highlight-tabs ?^))
-  (add-hook 'jaspace-mode-off-hook
-            (lambda()
-              (when (boundp 'show-trailing-whitespace)
-                (setq show-trailing-whitespace nil))))
-  (add-hook 'jaspace-mode-hook
-            (lambda()
-              (progn
-                (when (boundp 'show-trailing-whitespace)
-                  (setq show-trailing-whitespace t))
-                (face-spec-set 'jaspace-highlight-jaspace-face
-                               '((((class color) (background dark))
-                                  (:foreground "blue"))
-                                 (t (:foreground "green"))))
-                (face-spec-set 'jaspace-highlight-tab-face
-                               '((((class color) (background dark))
-                                  (:foreground "red"
-                                   :background "unspecified"
-                                   :strike-through nil
-                                   :underline t))
-                                 (t (:foreground "purple"
-                                     :background "unspecified"
-                                     :strike-through nil
-                                     :underline t))))
-                (face-spec-set 'trailing-whitespace
-                               '((((class color) (background dark))
-                                  (:foreground "red"
-                                   :background "unspecified"
-                                   :strike-through nil
-                                   :underline t))
-                                 (t (:foreground "purple"
-                                     :background "unspecified"
-                                     :strike-through nil
-                                     :underline t))))))))
-
+(global-whitespace-mode 1)
+(setq whitespace-space-regexp "\\(\u3000\\)")
+(setq whitespace-style '(face tabs tab-mark spaces space-mark))
+(setq whitespace-display-mappings
+      '((space-mark ?\u3000 [?\u25a1])
+        ;; WARNING: the mapping below has a problem.
+        ;; When a TAB occupies exactly one column, it will display the
+        ;; character ?\xBB at that column followed by a TAB which goes to
+        ;; the next TAB column.
+        ;; If this is a problem for you, please, comment the line below.
+        (tab-mark ?\t [?\u00BB ?\t] [?\\ ?\t])))
+(set-face-foreground 'whitespace-tab "yellow")
+(set-face-underline  'whitespace-tab t)
+(set-face-foreground 'whitespace-space "yellow")
+(set-face-background 'whitespace-space "red")
+(set-face-underline  'whitespace-space t)
 (put 'upcase-region 'disabled nil)
 
 ;; Yasnippet
@@ -389,15 +404,18 @@
 ;;              ;; C-x .で補完出来るようキーを設定
 ;;              (define-key ruby-mode-map (kbd "C-x .") 'ac-complete-rsense)))
 
+;;# YAML ########################################################################
+(require 'yaml-mode) (add-to-list 'auto-mode-alist '("\\.yml$" . yaml-mode))
+
 ;;# PHP #########################################################################
 ;;; php-mode
 (load-library "php-mode")
 (require 'php-mode)
 (add-hook 'php-mode-hook
           '(lambda ()
-             (setq tab-width 4)
+             (setq tab-width 2)
              (setq indent-tabs-mode nil)
-             (setq c-basic-offset 4)
+             (setq c-basic-offset 2)
              (c-set-offset 'arglist-intro '+)
              (c-set-offset 'arglist-close 0)))
 (add-to-list 'auto-mode-alist '("\\.ctp$" . php-mode))
@@ -430,9 +448,15 @@
 
 ;;# ActionScript #######################################################################
 (require 'actionscript-mode)
-(setq auto-mode-alist
-      (append '(("\\.as$" . actionscript-mode))
-              auto-mode-alist))
+(setq auto-mode-alist (append '(("\\.as$" . actionscript-mode)
+                                ("\\.mxml$" . actionscript-mode))
+                              auto-mode-alist))
+
+(add-hook 'actionscript-mode-hook
+    '(lambda ()
+       (setq actionscript-indent-level 4)
+       (setq tab-width 2)
+))
 
 ;;# JavaScript #######################################################################
 ;;; js2-mode
@@ -530,8 +554,10 @@
 
 ;; package.el
 (require 'package)
-;;リポジトリにMarmaladeを追加
+;;リポジトリ
 (add-to-list 'package-archives '("marmalade" . "http://marmalade-repo.org/packages/"))
+(add-to-list 'package-archives '("melpa" . "http://melpa.milkbox.net/packages/") t)
+(add-to-list 'package-archives '("gnu" . "http://elpa.gnu.org/packages/"))
 ;;インストールするディレクトリを指定
 (setq package-user-dir (concat user-emacs-directory "vendor/elpa"))
 ;;インストールしたパッケージにロードパスを通してロードする
@@ -539,42 +565,42 @@
 
 ;;; dired を使って、一気にファイルの coding system (漢字) を変換する
 ;; m でマークして T で一括変換
-(require 'dired-aux)
-(add-hook 'dired-mode-hook
-          (lambda ()
-            (define-key (current-local-map) "T"
-              'dired-do-convert-coding-system)))
+;; (require 'dired-aux)
+;; (add-hook 'dired-mode-hook
+;;           (lambda ()
+;;             (define-key (current-local-map) "T"
+;;               'dired-do-convert-coding-system)))
 
-(defvar dired-default-file-coding-system nil
-  "*Default coding system for converting file (s).")
+;; (defvar dired-default-file-coding-system nil
+;;   "*Default coding system for converting file (s).")
 
-(defvar dired-file-coding-system 'no-conversion)
+;; (defvar dired-file-coding-system 'no-conversion)
 
-(defun dired-convert-coding-system ()
-  (let ((file (dired-get-filename))
-        (coding-system-for-write dired-file-coding-system)
-        failure)
-    (condition-case err
-        (with-temp-buffer
-          (insert-file file)
-          (write-region (point-min) (point-max) file))
-      (error (setq failure err)))
-    (if (not failure)
-        nil
-      (dired-log "convert coding system error for %s:\n%s\n" file failure)
-      (dired-make-relative file))))
+;; (defun dired-convert-coding-system ()
+;;   (let ((file (dired-get-filename))
+;;         (coding-system-for-write dired-file-coding-system)
+;;         failure)
+;;     (condition-case err
+;;         (with-temp-buffer
+;;           (insert-file file)
+;;           (write-region (point-min) (point-max) file))
+;;       (error (setq failure err)))
+;;     (if (not failure)
+;;         nil
+;;       (dired-log "convert coding system error for %s:\n%s\n" file failure)
+;;       (dired-make-relative file))))
 
-(defun dired-do-convert-coding-system (coding-system &optional arg)
-  "Convert file (s) in specified coding system."
-  (interactive
-   (list (let ((default (or dired-default-file-coding-system
-                            buffer-file-coding-system)))
-           (read-coding-system
-            (format "Coding system for converting file (s) (default, %s): "
-                    default)
-            default))
-         current-prefix-arg))
-  (check-coding-system coding-system)
-  (setq dired-file-coding-system coding-system)
-  (dired-map-over-marks-check
-   (function dired-convert-coding-system) arg 'convert-coding-system t))
+;; (defun dired-do-convert-coding-system (coding-system &optional arg)
+;;   "Convert file (s) in specified coding system."
+;;   (interactive
+;;    (list (let ((default (or dired-default-file-coding-system
+;;                             buffer-file-coding-system)))
+;;            (read-coding-system
+;;             (format "Coding system for converting file (s) (default, %s): "
+;;                     default)
+;;             default))
+;;          current-prefix-arg))
+;;   (check-coding-system coding-system)
+;;   (setq dired-file-coding-system coding-system)
+;;   (dired-map-over-marks-check
+;;    (function dired-convert-coding-system) arg 'convert-coding-system t))
