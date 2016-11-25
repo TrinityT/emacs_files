@@ -1237,7 +1237,7 @@ been modified."
     (condition-case nil
         (revert-buffer t t)
       (error nil))
-    (when was-ro (toggle-read-only 1)))))))
+    (when was-ro (read-only-mode 1)))))))
 
 (defun svn-complete-url (url pred all)
   (string-match "\\`\\(.*/\\)\\([^/]*\\)\\'" url)

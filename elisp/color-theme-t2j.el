@@ -2,13 +2,13 @@
   (interactive)
   (color-theme-install
    '(color-theme-t2j
-      ((background-color . "#151515")
+     ((background-color . "#151515")
       (background-mode . dark)
-      (border-color . "#0000ff")
+      (border-color . "#ffffff")
       (cursor-color . "#1b54fe")
-      (foreground-color . "#ffffff")
+      (foreground-color . "white")
       (mouse-color . "black"))
-     (fringe ((t (:background "111111"))))
+     (fringe ((t (:foreground "151515" :background "111111"))))
      (mode-line ((t (:foreground "#fdfcfc" :background "#666666"))))
      (region ((t (:background "#0b08b5"))))
      (font-lock-builtin-face ((t (:foreground "#f4f556"))))

@@ -1,7 +1,7 @@
-;;; as3-mode.el --- A simple mode for editing Actionscript 3 files
- 
-;; Copyright (C) 2008 Austin Haas
- 
+;;; actionscript-mode.el --- A simple mode for editing Actionscript 3 files
+
+;; Copyright (C) 2011 Austin Haas
+
 ;; Author: Austin Haas
 ;; Keywords: language modes
 
@@ -12,18 +12,23 @@
 ;; it under the terms of the GNU General Public License as published by
 ;; the Free Software Foundation; either version 2, or (at your option)
 ;; any later version.
- 
+
 ;; This file is distributed in the hope that it will be useful,
 ;; but WITHOUT ANY WARRANTY; without even the implied warranty of
 ;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 ;; GNU General Public License for more details.
- 
+
 ;; You should have received a copy of the GNU General Public License
 ;; along with GNU Emacs; see the file COPYING. If not, write to
 ;; the Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 ;; Boston, MA 02111-1307, USA.
- 
+
 ;;; Commentary:
+;;
+;; Add this to your .emacs:
+;;
+;; (autoload 'actionscript-mode "actionscript-mode" "Major mode for actionscript." t)
+;; (add-to-list 'auto-mode-alist '("\\.as\\'" . actionscript-mode))
 ;;
 ;;------------------
 ;;; TODO
@@ -32,13 +37,21 @@
 
 ;;------------------
 
+;;; Changes in 7.2
+;;
+;; Updated comments.
+;;
+;; See https://github.com/austinhaas/actionscript-mode for info on
+;; future changes.
+
 ;;; Code:
 
 (require 'font-lock)
 (eval-when-compile
+  (require 'cl)
   (require 'regexp-opt))
 
-(defconst actionscript-mode-version "7.0"
+(defconst actionscript-mode-version "7.2.2"
   "Actionscript Mode version number.")
 
 (defgroup actionscript nil
@@ -82,24 +95,19 @@
 	(define-key actionscript-mode-map "\C-c\C-c" 'comment-region)
 	(define-key actionscript-mode-map "\C-c\C-u" 'uncomment-region))
 
-(defcustom actionscript-mode-hook nil
-  "*Hook called by `actionscript-mode'."
-  :type 'hook
-  :group 'actionscript)
-
 ;; Preprocessor directives (for cpp, not Actionscript).
 (defconst preprocessor-kwds
 	'("#include" "#define" "#else" "#endif" "#ifdef" "#ifndef"))
 
 ;; Constants
-(defconst actionscript-constant-kwds 
+(defconst actionscript-constant-kwds
 	'("true" "false" "null" "undefined" "NaN" "Infinity" "-Infinity"))
 
 ;; Global funcs
 (defconst actionscript-global-funcs
-  '("Array" "Boolean" "decodeURI" "decodeURIComponent" "encodeURI" 
+  '("Array" "Boolean" "decodeURI" "decodeURIComponent" "encodeURI"
 		"encodeURIComponent" "escape" "int" "isFinite" "isNaN" "isXMLName"
-		"Number" "Object"	"parseFloat" "parseInt"	"String" "trace" "uint" 
+		"Number" "Object"	"parseFloat" "parseInt"	"String" "trace" "uint"
 		"unescape" "XML" "XMLList"))
 
 ;; Top Level Classes
@@ -116,12 +124,12 @@
 
 ;; Operators
 (defconst actionscript-symbol-operators
-	'("+" "+=" "[]" "=" "&" "&=" "<<" "<<=" 
-		"~" "|" "|=" ">>" ">>=" ">>>" ">>>=" 
-		"^" "^=" "/*" "*/" "," "?:" "--" "/" 
-		"/=" "." "==" ">" ">=" "++" "!=" "<>" 
-		"<" "<=" "//" "&&" "!" "||" "%" "%=" 
-		"*" "*=" "{}" "()" "===" "!==" "\"" 
+	'("+" "+=" "[]" "=" "&" "&=" "<<" "<<="
+		"~" "|" "|=" ">>" ">>=" ">>>" ">>>="
+		"^" "^=" "/*" "*/" "," "?:" "--" "/"
+		"/=" "." "==" ">" ">=" "++" "!=" "<>"
+		"<" "<=" "//" "&&" "!" "||" "%" "%="
+		"*" "*=" "{}" "()" "===" "!==" "\""
 		"-" "-=" ":"))
 
 (defconst actionscript-word-operators
@@ -132,7 +140,7 @@
   '("override" "instrinsic" "private" "protected" "public" "static" "dynamic"))
 
 ;; Class/struct declaration keywords.
-(defconst actionscript-class-kwds 
+(defconst actionscript-class-kwds
 	'("class" "interface"))
 
 (defconst actionscript-package-kwds
@@ -147,7 +155,7 @@
 	'("var" "function" "const"))
 
 ;; Keywords that occur in declaration-level constructs.
-(defconst actionscript-decl-level-kwds 
+(defconst actionscript-decl-level-kwds
 	'("extends" "implements"))
 
 ;; Conditionals
@@ -165,11 +173,11 @@
   '("break" "continue" "return" "throw"))
 
 ;; Keywords introducing labels in blocks.
-(defconst actionscript-label-kwds 
+(defconst actionscript-label-kwds
 	'("case" "default"))
 
 ;; Keywords that can occur anywhere in expressions.
-(defconst actionscript-expr-kwds 
+(defconst actionscript-expr-kwds
 	'("super"))
 
 ;; Other keywords that we haven't grouped properly.
@@ -219,6 +227,12 @@
   :type 'hook
   :group 'actionscript)
 
+(defcustom actionscript-indent-level 2
+  "Number of spaces for each indentation step in `actionscript-mode'."
+  :type 'integer
+  :safe 'integerp
+  :group 'actionscript)
+
 (defcustom actionscript-font-lock-level 2
 	"*What level of syntax highlighting do we want. 1-3"
 	:type '(radio (const :tag "Only keywords." 1)
@@ -228,177 +242,55 @@
 
 ;;;; Faces -------------------------------------------------------------------
 
-(defvar actionscript-font-lock-default-face 'actionscript-font-lock-default-face)
-
-(let ((red "#a35757")
-			(green "#7ac470")
-			(yellow "#dfe14e")
-			(orange "#ef6d22")
-			(blue "#5083b2")
-			(magenta "#b781ac")
-			(cyan "#b0b5d2")
-			(white "#f0f0f0"))
-
-	(defface actionscript-preprocessor-kwds-face 
-			`((t (:foreground ,yellow)))
-		"*Face for preprocesor directives."
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-constant-kwds-face 
-			`((t (:foreground ,cyan)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-global-funcs-face 
-			`((t (:foreground ,red)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-global-classes
-			`((t (:foreground ,blue)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-global-props-face 
-			`((t (:foreground ,blue)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-operators-face 
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-specifier-kwds-face 
-			`((t (:foreground ,magenta)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-package-kwds-face 
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-class-kwds-face 
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-other-decl-kwds-face 
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-other-decl-2-kwds-face 
-			`((t (:foreground ,blue)))
-		"* function, var"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-decl-level-kwds-face 
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-conditional-kwds-face
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-block-stmt-1-kwds-face
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-simple-stmt-kwds-face
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-label-kwds-face
-			`((t (:foreground ,yellow)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-expr-kwds-face
-			`((t (:foreground ,red)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-other-kwds-face
-			`((t (:foreground ,red)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-package-name-face
-			`((t (:foreground ,green)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-class-name-face
-			`((t (:foreground ,cyan)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-function-name-face
-			`((t (:foreground ,green)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-
-	(defface actionscript-variable-name-face
-			`((t (:foreground ,cyan)))
-		"*"
-		:group 'actionscript-faces :group 'faces)
-	)
-
 (defconst actionscript-font-lock-keywords-1
 	 ;; The following only highlight specific words that exist in the language.
    (list
-		`(,(regexp-opt preprocessor-kwds 'words) 0 'actionscript-preprocessor-kwds-face)
-		`(,(regexp-opt actionscript-constant-kwds 'words) 0 'actionscript-constant-kwds-face)
-		`(,(regexp-opt actionscript-global-funcs 'words) 0 'actionscript-global-funcs-face)
-		`(,(regexp-opt actionscript-global-props 'words) 0 'actionscript-global-props-face)
-;;		`(,(regexp-opt actionscript-symbol-operators) 0 'actionscript-operators-face)
-		`(,(regexp-opt actionscript-word-operators 'words) 0 'actionscript-operators-face)
-		`(,(regexp-opt actionscript-specifier-kwds 'words) 0 'actionscript-specifier-kwds-face)
-		`(,(regexp-opt actionscript-class-kwds 'words) 0 'actionscript-class-kwds-face)
-		`(,(regexp-opt actionscript-package-kwds 'words) 0 'actionscript-package-kwds-face)
-		`(,(regexp-opt actionscript-other-decl-kwds 'words) 0 'actionscript-other-decl-kwds-face)
-		`(,(regexp-opt actionscript-other-decl-2-kwds 'words) 0 'actionscript-other-decl-2-kwds-face)
-		`(,(regexp-opt actionscript-decl-level-kwds 'words) 0 'actionscript-decl-level-kwds-face)
-		`(,(regexp-opt actionscript-conditional-kwds 'words) 0 'actionscript-conditional-kwds-face)
-		`(,(regexp-opt actionscript-block-stmt-1-kwds 'words) 0 'actionscript-block-stmt-1-kwds-face)
-		`(,(regexp-opt actionscript-simple-stmt-kwds 'words) 0 'actionscript-simple-stmt-kwds-face)
-		`(,(regexp-opt actionscript-label-kwds 'words) 0 'actionscript-label-kwds-face)
-		`(,(regexp-opt actionscript-expr-kwds 'words) 0 'actionscript-expr-kwds-face)
-		`(,(regexp-opt actionscript-other-kwds 'words) 0 'actionscript-other-kwds-face))
+		`(,(regexp-opt preprocessor-kwds 'words) 0 'font-lock-proceprocessor-face)
+		`(,(regexp-opt actionscript-constant-kwds 'words) 0 'font-lock-constant-face)
+		`(,(regexp-opt actionscript-global-funcs 'words) 0 'font-lock-function-name-face)
+		`(,(regexp-opt actionscript-global-props 'words) 0 'font-lock-variable-name-face)
+;;		`(,(regexp-opt actionscript-symbol-operators) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-word-operators 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-specifier-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-class-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-package-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-other-decl-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-other-decl-2-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-decl-level-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-conditional-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-block-stmt-1-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-simple-stmt-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-label-kwds 'words) 0 'font-lock-constant-face)
+		`(,(regexp-opt actionscript-expr-kwds 'words) 0 'font-lock-keyword-face)
+		`(,(regexp-opt actionscript-other-kwds 'words) 0 'font-lock-keyword-face))
 	"Subdued level highlighting for Actionscript mode.")
 
 (defconst actionscript-font-lock-keywords-2
   (append
    actionscript-font-lock-keywords-1
 	 ;;;; The rules in this section highlight words in the buffer by determining their context.
-	 (list 
+	 (list
 		;; Fontify package names in import directives.
 		;; TODO: support '*' as the last symbol in the package name.
 		(list (concat (regexp-opt actionscript-other-decl-kwds 'words) "[ \t]*\\(?:" actionscript-identifier-re "\\.\\)*\\(" actionscript-identifier-re "\\)?")
-					'(2 'actionscript-class-name-face nil t)
-					(list (concat "[ \t]*\\(" actionscript-identifier-re "\\)\\.") '(goto-char (match-end 1)) '(goto-char (match-end 0)) '(1 'actionscript-package-name-face nil t)))
+					'(2 'font-lock-type-face nil t)
+					(list (concat "[ \t]*\\(" actionscript-identifier-re "\\)\\.") '(goto-char (match-end 1)) '(goto-char (match-end 0)) '(1 'font-lock-constant-face nil t)))
 
 		;; Fontify package names.
 		(list (concat (regexp-opt (append actionscript-package-kwds) 'words) "[ \t]*\\(" actionscript-identifier-re "\\)?")
-					'(2 'actionscript-package-name-face nil t))
+					'(2 'font-lock-constant-face nil t))
 
 		;; Fontify class names.
 		(list (concat (regexp-opt (append actionscript-class-kwds actionscript-decl-level-kwds) 'words) "[ \t]*\\(" actionscript-identifier-re "\\)?")
-					'(2 'actionscript-class-name-face nil t))
+					'(2 'font-lock-type-face nil t))
 
 		;; Function names.
 		(list (concat "\\<function\\>[ \t\n]+\\(?:\\(?:get\\|set\\)[ \t\n]+\\)?\\(?:\\(" actionscript-identifier-re "\\)\\)?")
-					'(1 'actionscript-function-name-face nil t))
+					'(1 'font-lock-function-name-face nil t))
 
 		;; The 'in' in 'for..in.'
 		(list (concat "\\<for\\>[ \t\n]*([ \t\n]*\\(?:var[ \t\n]+\\)?" actionscript-identifier-re "[ \t\n]*\\(?::[ \t\n]*\\([a-zA-Z0-9_$*]*\\)\\)?[ \t\n]+\\(in\\)[ \t\n]+")
-					'(2 'actionscript-other-kwds-face nil t))
+					'(2 'font-lock-keyword-face nil t))
 
 		;; The 'each' and the 'in' in 'for each..in.'
 ;; 		(list (concat "\\<for\\>[ \t\n]+\\(?:\\(each\\)[ \t\n]*\\)([ \t\n]*\\(?:var[ \t\n]+\\)?" actionscript-identifier-re "[ \t\n]*\\(?::[ \t\n]*\\([a-zA-Z0-9_$*]*\\)\\)?[ \t\n]+\\(in\\)[ \t\n]+")
@@ -415,7 +307,7 @@
 						;; Start and finish with point after the type specifier.
 						(goto-char (match-beginning 1))
 						(goto-char (match-beginning 1))
-						(1 'actionscript-variable-name-face)))
+						(1 'font-lock-variable-name-face)))
 
 		;; Objects and their functions
 		;; package(s) class property
@@ -466,7 +358,7 @@ the regexp will match any function."
 						"\\([\"a-zA-Z\-0-9_$*,:= \t\n]*?\\(?:\\.\\.\\.[a-zA-Z\-0-9_$]+\\)?\\)"           ; (4) Function parameters, including any trailing '...args'.
 						")"                                                          ; Closing paren for function parameters.
 						"[ \t\n]*"                                                   ; Optional whitespace.
-						"\\(?::[ \t\n]*\\(" actionscript-identifier-re "\\|*\\)\\)?"    ; (5) Optional return value type specifier.
+						"\\(?::[ \t\n]*\\(" actionscript-identifier-re "\\|\\*\\)\\)?"    ; (5) Optional return value type specifier.
 						"[ \t\n]*"                                                   ; Optional whitespace.
 						"{")))                                                       ; Opening brace for function body.
 
@@ -489,7 +381,7 @@ is omitted, the regexp will match any class attribute."
 						"[ \t\n]+"                                                   ; Mandatory whitespace.
 						"\\(" attribute-name "\\)"                                   ; (4) Attribute name.
 						"[ \t\n]*"                                                   ; Optional whitespace.
-						"\\(?::[ \t\n]*\\(" actionscript-identifier-re "*\\)\\)?"    ; (5) Optional type specifier.
+						"\\(?::[ \t\n]*\\(" actionscript-identifier-re "\\|\\*\\)\\)?"    ; (5) Optional type specifier.
 						)))
 
 (defconst as-attribute-re (as-get-attribute-re)
@@ -570,11 +462,20 @@ is omitted, the regexp will match any class attribute."
 ;; --------------------------------------------------------------------------------
 
 ;; Indentation (by Aemon Cannon: http://github.com/aemoncannon/as3-mode/tree/master/as3-mode.el)
- 
+
 (defun actionscript-indent-line ()
-  "Indent current line of As3 code."
+  "Indent current line of As3 code. Delete any trailing
+whitespace. Keep point at same relative point in the line."
   (interactive)
-  (indent-line-to (max 0 (as3-calculate-indentation))))
+  (save-excursion
+    (end-of-line)
+    (delete-horizontal-space))
+  (let ((old-pos (point)))
+    (back-to-indentation)
+    (let ((delta (- old-pos (point)))
+          (col (max 0 (as3-calculate-indentation))))
+    (indent-line-to col)
+    (forward-char delta))))
 
 (defun as3-calculate-indentation ()
   "Return the column to which the current line should be indented."
@@ -583,22 +484,22 @@ is omitted, the regexp will match any class attribute."
     (let ((pos (point)))
       (beginning-of-line)
       (if (not (search-backward-regexp "[^\n\t\r ]" 1 0))
-   0
-  (progn
-   (as3-maybe-skip-leading-close-delim)
-   (+ (current-indentation) (* standard-indent (as3-count-scope-depth (point) pos))))))))
- 
+          0
+        (progn
+          (as3-maybe-skip-leading-close-delim)
+          (+ (current-indentation) (* actionscript-indent-level (as3-count-scope-depth (point) pos))))))))
+
 (defun as3-maybe-skip-leading-close-delim ()
   (beginning-of-line)
   (forward-to-indentation 0)
   (if (looking-at "\\s)")
       (forward-char)
     (beginning-of-line)))
- 
+
 (defun as3-face-at-point (pos)
   "Return face descriptor for char at point."
   (plist-get (text-properties-at pos) 'face))
- 
+
 (defun as3-count-scope-depth (rstart rend)
   "Return difference between open and close scope delimeters."
   ;;Attempting Steve Yegge's solution..
@@ -626,7 +527,7 @@ is omitted, the regexp will match any class attribute."
             (incf open-count))
            )))
       (- open-count close-count))))
- 
+
 ;; --------------------------------------------------------------------------------
 
 ;;;###autoload
@@ -650,7 +551,7 @@ is omitted, the regexp will match any class attribute."
   (setq comment-start-skip "\\(//+\\|/\\*+\\)\\s *")
   (make-local-variable 'font-lock-defaults)
   (setq font-lock-defaults
-        `((,(cond 
+        `((,(cond
 						 ((= actionscript-font-lock-level 1) 'actionscript-font-lock-keywords-1)
 						 ((= actionscript-font-lock-level 2) 'actionscript-font-lock-keywords-2)
 						 ((= actionscript-font-lock-level 3) 'actionscript-font-lock-keywords-3)))
@@ -659,6 +560,9 @@ is omitted, the regexp will match any class attribute."
 
 ;; We need to make an adjustment to hideshow to work properly with AS syntax.
 (add-to-list 'hs-special-modes-alist '(actionscript-mode "{" "}" "/[*/]" nil hs-c-like-adjust-block-beginning))
+
+;;;###autoload
+(add-to-list 'auto-mode-alist '("\\.as\\'" . actionscript-mode))
 
 (provide 'actionscript-mode)
 
@@ -672,4 +576,4 @@ is omitted, the regexp will match any class attribute."
 		(message "actionscript-mode reloaded.")))
 
 (define-key global-map [f5] 'reload-actionscript-mode)
-
+;;; actionscript-mode.el ends here
